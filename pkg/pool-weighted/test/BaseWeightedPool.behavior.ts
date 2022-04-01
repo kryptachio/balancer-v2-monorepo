@@ -1,10 +1,8 @@
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { PoolSpecialization, SwapKind } from '@balancer-labs/balancer-js';
-import { BigNumberish, bn, fp, FP_SCALING_FACTOR, pct } from "@balancer-labs/v2-helpers/src/numbers";
-import { ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
+import { BigNumberish, bn, fp, FP_SCALING_FACTOR, pct } from '@balancer-labs/v2-helpers/src/numbers';
 
 import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
 import WeightedPool from '@balancer-labs/v2-helpers/src/models/pools/weighted/WeightedPool';
@@ -16,7 +14,7 @@ export function itBehavesAsWeightedPool(
 ): void {
   const POOL_SWAP_FEE_PERCENTAGE = fp(0.01);
   const WEIGHTS = [fp(30), fp(70), fp(5), fp(5)];
-  const INITIAL_BALANCES = [fp(1), fp(4), fp(2.7), fp(3.6)];
+  const INITIAL_BALANCES = [fp(1), fp(4)];
 
   let recipient: SignerWithAddress, other: SignerWithAddress, lp: SignerWithAddress, assetManager: SignerWithAddress;
 
@@ -115,84 +113,6 @@ export function itBehavesAsWeightedPool(
         console.log('maxAmountInWithFees', maxAmountInWithFees.div(FP_SCALING_FACTOR).toString());
         const amount = maxAmountInWithFees.add(fp(1));
         await expect(pool.swapGivenIn({ in: 1, out: 0, amount })).to.be.revertedWith('MAX_IN_RATIO');
-      });
-
-      if (poolType != WeightedPoolType.ORACLE_WEIGHTED_POOL) {
-        it('reverts if token in is not in the pool', async () => {
-          await expect(pool.swapGivenIn({ in: allTokens.BAT, out: 0, amount: 1 })).to.be.revertedWith('INVALID_TOKEN');
-        });
-
-        it('reverts if token out is not in the pool', async () => {
-          await expect(pool.swapGivenIn({ in: 1, out: allTokens.BAT, amount: 1 })).to.be.revertedWith('INVALID_TOKEN');
-        });
-      }
-
-      it('reverts if paused', async () => {
-        await pool.pause();
-
-        await expect(pool.swapGivenIn({ in: 1, out: 0, amount: 1 })).to.be.revertedWith('PAUSED');
-      });
-    });
-
-    context('given out', () => {
-      it('reverts if caller is not the vault', async () => {
-        await expect(
-          pool.instance.onSwap(
-            {
-              kind: SwapKind.GivenOut,
-              tokenIn: tokens.first.address,
-              tokenOut: tokens.second.address,
-              amount: 0,
-              poolId: await pool.getPoolId(),
-              lastChangeBlock: 0,
-              from: other.address,
-              to: other.address,
-              userData: '0x',
-            },
-            0,
-            0
-          )
-        ).to.be.revertedWith('CALLER_NOT_VAULT');
-      });
-
-      it('calculates amount in', async () => {
-        const amount = fp(0.1);
-        const expectedAmountIn = await pool.estimateGivenOut({ in: 1, out: 0, amount });
-
-        const result = await pool.swapGivenOut({ in: 1, out: 0, amount });
-
-        expect(result.amount).to.be.equalWithError(expectedAmountIn, 0.1);
-      });
-
-      it('calculates max amount in', async () => {
-        const amount = await pool.getMaxOut(0);
-        const expectedAmountIn = await pool.estimateGivenOut({ in: 1, out: 0, amount });
-
-        const result = await pool.swapGivenOut({ in: 1, out: 0, amount });
-
-        expect(result.amount).to.be.equalWithError(expectedAmountIn, 0.1);
-      });
-
-      it('reverts if token in exceeds max out ratio', async () => {
-        const amount = (await pool.getMaxOut(0)).add(2);
-
-        await expect(pool.swapGivenOut({ in: 1, out: 0, amount })).to.be.revertedWith('MAX_OUT_RATIO');
-      });
-
-      if (poolType != WeightedPoolType.ORACLE_WEIGHTED_POOL) {
-        it('reverts if token in is not in the pool when given out', async () => {
-          await expect(pool.swapGivenOut({ in: allTokens.BAT, out: 0, amount: 1 })).to.be.revertedWith('INVALID_TOKEN');
-        });
-
-        it('reverts if token out is not in the pool', async () => {
-          await expect(pool.swapGivenOut({ in: 1, out: allTokens.BAT, amount: 1 })).to.be.revertedWith('INVALID_TOKEN');
-        });
-      }
-
-      it('reverts if paused', async () => {
-        await pool.pause();
-
-        await expect(pool.swapGivenOut({ in: 1, out: 0, amount: 1 })).to.be.revertedWith('PAUSED');
       });
     });
   });
