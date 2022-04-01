@@ -50,7 +50,7 @@ export function itBehavesAsWeightedPool(
         },
         {
           symbol: 'DAI',
-          decimals: 0,
+          decimals: 18,
         },
       ],
       { sorted: true }
